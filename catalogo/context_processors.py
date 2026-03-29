@@ -1,7 +1,7 @@
 # catalogo/context_processors.py
 from .models import Carrito, Categoria
 
-def carrito_context(request):
+def carrito_count(request):
     """
     Context processor para información del carrito
     Este nombre debe coincidir con el que está en settings.py: 'catalogo.context_processors.carrito_context'
