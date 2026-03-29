@@ -7,7 +7,6 @@ from django.db import connections
 from django.db.utils import OperationalError
 
 def wait_for_db():
-    """Espera hasta que la base de datos esté disponible"""
     print("⏳ Esperando a que PostgreSQL esté lista...")
     db_conn = None
     max_retries = 30
@@ -19,25 +18,19 @@ def wait_for_db():
             db_conn = True
             print("✅ Base de datos conectada!")
         except OperationalError:
-            print(f"⚠️ Base de datos no disponible, reintentando en 1 segundo... (intento {retry_count + 1}/{max_retries})")
+            print(f"⚠️ Base de datos no disponible, reintentando... (intento {retry_count + 1}/{max_retries})")
             time.sleep(1)
             retry_count += 1
     
     if not db_conn:
-        print("❌ No se pudo conectar a la base de datos después de 30 intentos")
+        print("❌ No se pudo conectar a la base de datos")
         sys.exit(1)
 
 if __name__ == "__main__":
-    # Configurar Django
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'htwl.settings')
     django.setup()
-    
-    # Esperar a la base de datos
     wait_for_db()
-    
-    # Ejecutar migraciones
     print("🔄 Ejecutando migraciones...")
     from django.core.management import execute_from_command_line
     execute_from_command_line(['manage.py', 'migrate'])
-    
     print("✅ Migraciones completadas!")
