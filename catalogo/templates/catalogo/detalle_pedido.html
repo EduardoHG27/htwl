@@ -1,0 +1,168 @@
+{% extends 'catalogo/base.html' %}
+{% load static %}
+
+{% block title %}Detalle del Pedido #{{ pedido.id }} - Mi Tienda{% endblock %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'catalogo:index' %}">Inicio</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'catalogo:mis_pedidos' %}">Mis Pedidos</a></li>
+            <li class="breadcrumb-item active">Pedido #{{ pedido.id }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0">Detalle del Pedido #{{ pedido.id }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-sm-6">
+                            <h6 class="mb-3">Fecha:</h6>
+                            <p>{{ pedido.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        <div class="col-sm-6">
+                            <h6 class="mb-3">Estado:</h6>
+                            <div class="d-flex gap-2">
+                                <span class="badge {% if pedido.estado == 'entregado' %}bg-success{% elif pedido.estado == 'cancelado' %}bg-danger{% elif pedido.estado == 'enviado' %}bg-info{% else %}bg-warning{% endif %} fs-6">
+                                    {{ pedido.get_estado_display }}
+                                </span>
+                                <span class="badge 
+                                    {% if pedido.estado_pago == 'pagado' %}bg-success
+                                    {% elif pedido.estado_pago == 'verificando' %}bg-info
+                                    {% elif pedido.estado_pago == 'rechazado' %}bg-danger
+                                    {% elif pedido.estado_pago == 'pendiente' %}bg-warning
+                                    {% else %}bg-secondary{% endif %} fs-6">
+                                    Pago: {{ pedido.get_estado_pago_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-3">Productos:</h6>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio unitario</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'catalogo:detalle_producto' item.producto.slug %}">
+                                            {{ item.producto.nombre }}
+                                        </a>
+                                    </td>
+                                    <td>{{ item.cantidad }}</td>
+                                    <td>${{ item.precio_unitario }}</td>
+                                    <td>${{ item.subtotal }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                                    <td>${{ pedido.subtotal }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>IVA (16%):</strong></td>
+                                    <td>${{ pedido.iva }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Costo de envío:</strong></td>
+                                    <td>${{ pedido.costo_envio }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                    <td><strong>${{ pedido.total }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Información de envío -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Información de envío</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Nombre:</strong> {{ pedido.nombre_completo }}</p>
+                    <p class="mb-1"><strong>Dirección:</strong> {{ pedido.direccion }}</p>
+                    <p class="mb-1"><strong>Ciudad:</strong> {{ pedido.ciudad }}</p>
+                    <p class="mb-1"><strong>Código Postal:</strong> {{ pedido.codigo_postal }}</p>
+                    <p class="mb-1"><strong>Teléfono:</strong> {{ pedido.telefono }}</p>
+                    <p class="mb-1"><strong>Tipo de entrega:</strong> {{ pedido.get_tipo_entrega_display }}</p>
+                    {% if pedido.numero_seguimiento %}
+                    <p class="mb-1"><strong>Número de seguimiento:</strong> {{ pedido.numero_seguimiento }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información de pago -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Información de pago</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Método:</strong> {{ pedido.get_metodo_pago_display }}</p>
+                    
+                    {% if pedido.metodo_pago == 'transferencia' %}
+                        <p class="mb-1"><strong>Referencia:</strong> {{ pedido.referencia_pago }}</p>
+                        
+                        {% if pedido.estado_pago == 'pendiente' %}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-clock"></i> 
+                                <p class="mb-2">Tu pago está pendiente. Por favor realiza la transferencia y sube el comprobante.</p>
+                                <a href="{% url 'catalogo:instrucciones_transferencia' pedido.id %}" class="btn btn-warning btn-sm">
+                                    <i class="bi bi-bank"></i> Ver instrucciones
+                                </a>
+                            </div>
+                        {% elif pedido.estado_pago == 'verificando' %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-hourglass-split"></i>
+                                <p class="mb-2">Estamos verificando tu comprobante de pago.</p>
+                                {% if pedido.comprobante_pago %}
+                                    <a href="{{ pedido.comprobante_pago.url }}" target="_blank" class="btn btn-info btn-sm">
+                                        <i class="bi bi-file-image"></i> Ver comprobante
+                                    </a>
+                                {% endif %}
+                            </div>
+                        {% elif pedido.estado_pago == 'rechazado' %}
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <p class="mb-2">Tu pago ha sido rechazado. Por favor contacta al administrador.</p>
+                            </div>
+                        {% elif pedido.estado_pago == 'pagado' %}
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle"></i>
+                                <p class="mb-0">Pago verificado exitosamente.</p>
+                            </div>
+                        {% endif %}
+                        
+                        {% if pedido.fecha_pago %}
+                            <p class="mb-1"><strong>Fecha de pago:</strong> {{ pedido.fecha_pago|date:"d/m/Y H:i" }}</p>
+                        {% endif %}
+                        
+                        {% if pedido.observaciones_pago %}
+                            <p class="mb-1"><strong>Observaciones:</strong> {{ pedido.observaciones_pago }}</p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

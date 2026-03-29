@@ -1,0 +1,370 @@
+{% extends 'catalogo/base.html' %}
+{% load static %}
+
+{% block title %}Inicio - Mi Tienda{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Carrusel de imágenes gestionable desde el admin -->
+    {% if carrusel_imagenes %}
+    <div id="carruselPrincipal" class="carousel slide mb-5" data-bs-ride="carousel">
+        <div class="carousel-indicators">
+            {% for imagen in carrusel_imagenes %}
+            <button type="button" data-bs-target="#carruselPrincipal" 
+                    data-bs-slide-to="{{ forloop.counter0 }}" 
+                    {% if forloop.first %}class="active"{% endif %}
+                    aria-label="Slide {{ forloop.counter }}"></button>
+            {% endfor %}
+        </div>
+        <div class="carousel-inner rounded-4 shadow-sm">
+            {% for imagen in carrusel_imagenes %}
+            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                {% if imagen.url %}
+                <a href="{{ imagen.url }}" {% if imagen.url|slice:":4" == "http" %}target="_blank"{% endif %}>
+                {% endif %}
+                    <div class="position-relative">
+                        <img src="{{ imagen.imagen.url }}" 
+                             class="d-block w-100" 
+                             alt="{{ imagen.titulo|default:'Imagen promocional' }}"
+                             style="height: 450px; object-fit: cover;">
+                        {% if imagen.titulo or imagen.subtitulo %}
+                        <!-- Eliminamos d-none d-md-block para que se vea en móvil -->
+                        <div class="carousel-caption" style="bottom: 15%; left: 0; right: 0;">
+                            <div class="bg-dark bg-opacity-60 p-3 p-md-4 rounded-3" style="max-width: 90%; margin: 0 auto;">
+                                {% if imagen.titulo %}
+                                <h2 class="fw-bold mb-2 mb-md-3" style="font-size: 1.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                                    {{ imagen.titulo }}
+                                </h2>
+                                {% endif %}
+                                {% if imagen.subtitulo %}
+                                <p class="fw-semibold mb-0" style="font-size: 1rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
+                                    {{ imagen.subtitulo }}
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                {% if imagen.url %}
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Controles del carrusel -->
+        <button class="carousel-control-prev" type="button" data-bs-target="#carruselPrincipal" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+            <span class="visually-hidden">Anterior</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carruselPrincipal" data-bs-slide="next">
+            <span class="carousel-control-next-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+            <span class="visually-hidden">Siguiente</span>
+        </button>
+    </div>
+    {% else %}
+    <!-- Hero Section por defecto si no hay imágenes en el carrusel -->
+    <div class="bg-light p-5 rounded-3 mb-4">
+        <div class="container-fluid py-5">
+            <h1 class="display-5 fw-bold">Bienvenido a Mi Tienda</h1>
+            <p class="col-md-8 fs-4">
+                Descubre los mejores productos con los mejores precios. 
+                Envíos a todo el país.
+            </p>
+            <a href="{% url 'catalogo:lista_productos' %}" class="btn btn-primary btn-lg">
+                Ver Productos <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Categorías -->
+    <h2 class="mb-4 fw-bold" style="font-size: 1.75rem;">Categorías</h2>
+    <div class="row mb-5">
+        {% for categoria in categorias %}
+        <div class="col-md-4 col-lg-2 mb-3">
+            <a href="{% url 'catalogo:lista_productos' %}?categoria={{ categoria.slug }}" 
+               class="text-decoration-none">
+                <div class="card text-center h-100 hover-card">
+                    <div class="card-body">
+                        <i class="bi bi-tag fs-1"></i>
+                        <h6 class="card-title mt-2 fw-semibold" style="font-size: 1rem;">{{ categoria.nombre }}</h6>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <p class="text-muted">No hay categorías disponibles</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Carrusel de productos destacados -->
+    {% if destacados %}
+    <div id="productosDestacados" class="carousel slide mb-5" data-bs-ride="carousel">
+        <div class="carousel-indicators">
+            {% for producto in destacados %}
+            <button type="button" data-bs-target="#productosDestacados" 
+                    data-bs-slide-to="{{ forloop.counter0 }}" 
+                    {% if forloop.first %}class="active"{% endif %}>
+            </button>
+            {% endfor %}
+        </div>
+        <div class="carousel-inner rounded-4 shadow-sm">
+            {% for producto in destacados %}
+            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                <div class="row g-0">
+                    <div class="col-md-6">
+                        {% if producto.imagen_principal %}
+                        <img src="{{ producto.imagen_principal.url }}" 
+                             class="d-block w-100" 
+                             alt="{{ producto.nombre }}" 
+                             style="height: 400px; object-fit: cover; border-radius: 1rem 0 0 1rem;">
+                        {% else %}
+                        <div class="bg-secondary d-flex align-items-center justify-content-center" style="height: 400px;">
+                            <i class="bi bi-image text-white" style="font-size: 4rem;"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 d-flex align-items-center bg-white" style="border-radius: 0 1rem 1rem 0;">
+                        <div class="p-4">
+                            <h3 class="fw-bold" style="font-size: 1.75rem;">{{ producto.nombre }}</h3>
+                            <p class="text-muted" style="font-size: 1rem;">{{ producto.descripcion|truncatechars:200 }}</p>
+                            <div class="mb-3">
+                                <span class="h2 fw-bold text-primary" style="font-size: 2rem;">${{ producto.precio_actual }}</span>
+                                {% if producto.precio_oferta %}
+                                <small class="text-muted text-decoration-line-through ms-2" style="font-size: 1rem;">${{ producto.precio }}</small>
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'catalogo:detalle_producto' producto.slug %}" class="btn btn-primary btn-lg fw-semibold" style="font-size: 1rem;">
+                                Ver detalles <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#productosDestacados" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+            <span class="visually-hidden">Anterior</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#productosDestacados" data-bs-slide="next">
+            <span class="carousel-control-next-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+            <span class="visually-hidden">Siguiente</span>
+        </button>
+    </div>
+    {% endif %}
+
+      <!-- Productos Nuevos -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0 fw-bold" style="font-size: 1.75rem;">Productos Nuevos</h2>
+        <a href="{% url 'catalogo:lista_productos' %}?orden=-fecha_creacion" class="text-decoration-none fw-semibold" style="font-size: 1rem;">
+            Ver todos <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+    <div class="row mb-5">
+        {% for producto in nuevos %}
+        <div class="col-md-3 mb-4">
+            <div class="card producto-card h-100 shadow-sm border-0 hover-scale position-relative">
+                <!-- Enlace que cubre toda la tarjeta -->
+                <a href="{% url 'catalogo:detalle_producto' producto.slug %}" class="stretched-link text-decoration-none" aria-label="Ver detalles de {{ producto.nombre }}"></a>
+                
+                {% if not producto.en_stock %}
+                <span class="badge bg-secondary position-absolute top-0 start-0 m-2" style="font-size: 0.8rem; font-weight: 600; z-index: 2;">SIN STOCK</span>
+                {% endif %}
+                {% if producto.precio_oferta %}
+                <span class="badge bg-danger position-absolute top-0 end-0 m-2" style="font-size: 0.8rem; font-weight: 600; z-index: 2;">OFERTA</span>
+                {% endif %}
+                
+                {% if producto.imagen_principal %}
+                <img src="{{ producto.imagen_principal.url }}" class="card-img-top producto-img" alt="{{ producto.nombre }}" style="height: 200px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="bi bi-image text-white" style="font-size: 3rem;"></i>
+                </div>
+                {% endif %}
+                
+                <div class="card-body">
+                    <h5 class="card-title fw-bold" style="font-size: 1rem;">{{ producto.nombre|truncatechars:50 }}</h5>
+                    <p class="card-text text-muted small fw-medium" style="font-size: 0.85rem;">{{ producto.categoria.nombre }}</p>
+                    
+                    <div class="mb-2">
+                        <span class="h5 fw-bold text-primary" style="font-size: 1.25rem;">${{ producto.precio_actual }}</span>
+                        {% if producto.precio_oferta %}
+                        <small class="text-muted text-decoration-line-through ms-2" style="font-size: 0.85rem;">${{ producto.precio }}</small>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Solo botón de agregar al carrito -->
+                    <div style="position: relative; z-index: 3;">
+                        {% if producto.en_stock %}
+                        <form action="{% url 'catalogo:agregar_al_carrito' producto.id %}" method="POST" onclick="event.stopPropagation();">
+                            {% csrf_token %}
+                            <input type="hidden" name="cantidad" value="1">
+                            <button type="submit" class="btn btn-primary w-100 fw-semibold" style="font-size: 0.9rem;">
+                                <i class="bi bi-cart-plus"></i> Agregar al carrito
+                            </button>
+                        </form>
+                        {% else %}
+                        <button class="btn btn-secondary w-100 fw-semibold" style="font-size: 0.9rem;" disabled onclick="event.stopPropagation();">
+                            <i class="bi bi-cart-x"></i> Sin stock
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <p class="text-muted text-center">No hay productos nuevos</p>
+        </div>
+        {% endfor %}
+    </div>
+
+<style>
+    /* Efectos hover para las tarjetas */
+    .hover-card {
+        transition: all 0.3s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
+    }
+    
+    .hover-scale {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hover-scale:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 1rem 2rem rgba(0,0,0,0.1) !important;
+    }
+    
+    /* Estilos para el carrusel */
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+        background-size: 60% 60%;
+        width: 3rem;
+        height: 3rem;
+        opacity: 0.8;
+    }
+    .carousel-control-prev-icon:hover,
+    .carousel-control-next-icon:hover {
+        opacity: 1;
+    }
+    
+    /* Estilos mejorados para el caption en móvil */
+    .carousel-caption {
+        position: absolute;
+        right: 0;
+        bottom: 1.25rem;
+        left: 0;
+        padding-top: 1.25rem;
+        padding-bottom: 1.25rem;
+        color: #fff;
+        text-align: center;
+        background: transparent;
+    }
+    
+    /* Fondo semitransparente para mejor legibilidad */
+    .carousel-caption .bg-dark {
+        background-color: rgba(0, 0, 0, 0.7) !important;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .carousel-item img {
+            height: 300px !important;
+        }
+        
+        /* Ajustes de fuente en móvil */
+        .carousel-caption h2 {
+            font-size: 1.25rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .carousel-caption p {
+            font-size: 0.85rem !important;
+        }
+        
+        .carousel-caption .bg-dark {
+            padding: 0.75rem !important;
+        }
+        
+        #productosDestacados .col-md-6:first-child img {
+            border-radius: 1rem 1rem 0 0 !important;
+        }
+        #productosDestacados .col-md-6:last-child {
+            border-radius: 0 0 1rem 1rem !important;
+        }
+        
+        /* Ajustes para el caption en móvil muy pequeño */
+        @media (max-width: 480px) {
+            .carousel-caption {
+                bottom: 0.5rem;
+            }
+            .carousel-caption h2 {
+                font-size: 1rem !important;
+            }
+            .carousel-caption p {
+                font-size: 0.75rem !important;
+            }
+        }
+    }
+    
+    /* Tablet */
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .carousel-caption h2 {
+            font-size: 2rem !important;
+        }
+        .carousel-caption p {
+            font-size: 1.2rem !important;
+        }
+    }
+    
+    /* Desktop */
+    @media (min-width: 1025px) {
+        .carousel-caption h2 {
+            font-size: 3rem !important;
+        }
+        .carousel-caption p {
+            font-size: 1.5rem !important;
+        }
+    }
+    
+    /* Mejoras adicionales de tipografía */
+    .display-4 {
+        font-weight: 800 !important;
+    }
+    
+    .lead {
+        font-weight: 600 !important;
+    }
+</style>
+
+<script>
+    // Inicializar carruseles con autoplay y pausa al hover
+    document.addEventListener('DOMContentLoaded', function() {
+        // Carrusel principal de imágenes
+        const carruselPrincipal = document.getElementById('carruselPrincipal');
+        if (carruselPrincipal) {
+            new bootstrap.Carousel(carruselPrincipal, {
+                interval: 5000,
+                pause: 'hover',
+                wrap: true
+            });
+        }
+        
+        // Carrusel de productos destacados
+        const carruselProductos = document.getElementById('productosDestacados');
+        if (carruselProductos) {
+            new bootstrap.Carousel(carruselProductos, {
+                interval: 6000,
+                pause: 'hover',
+                wrap: true
+            });
+        }
+    });
+</script>
+{% endblock %}

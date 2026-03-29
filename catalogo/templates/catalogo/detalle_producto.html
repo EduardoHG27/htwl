@@ -1,0 +1,727 @@
+{% extends 'catalogo/base.html' %}
+{% load static %}
+
+{% block title %}{{ producto.nombre }} - Mi Tienda{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Migas de pan -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'catalogo:index' %}">Inicio</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'catalogo:lista_productos' %}">Productos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'catalogo:lista_productos' %}?categoria={{ producto.categoria.slug }}">{{ producto.categoria.nombre }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ producto.nombre|truncatechars:30 }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Imágenes del producto -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                {% if producto.imagen_principal %}
+                <img src="{{ producto.imagen_principal.url }}" class="card-img-top" alt="{{ producto.nombre }}" id="mainImage" style="max-height: 400px; object-fit: contain;">
+                {% else %}
+                <div class="text-center p-5 bg-secondary bg-opacity-10">
+                    <i class="bi bi-image" style="font-size: 5rem;"></i>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Miniaturas de imágenes adicionales -->
+            {% if producto.imagen_1 or producto.imagen_2 %}
+            <div class="row mt-3">
+                {% if producto.imagen_1 %}
+                <div class="col-3">
+                    <img src="{{ producto.imagen_1.url }}" class="img-thumbnail" alt="Imagen 1" style="cursor: pointer;" onclick="document.getElementById('mainImage').src=this.src">
+                </div>
+                {% endif %}
+                {% if producto.imagen_2 %}
+                <div class="col-3">
+                    <img src="{{ producto.imagen_2.url }}" class="img-thumbnail" alt="Imagen 2" style="cursor: pointer;" onclick="document.getElementById('mainImage').src=this.src">
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Detalles del producto -->
+        <div class="col-md-6">
+            <h1 class="mb-3">{{ producto.nombre }}</h1>
+            
+            <!-- Marca y categoría -->
+            <p class="text-muted mb-2">
+                <i class="bi bi-building"></i> Marca: 
+                {% if producto.marca %}
+                <a href="{% url 'catalogo:lista_productos' %}?marca={{ producto.marca.slug }}">{{ producto.marca.nombre }}</a>
+                {% else %}
+                Sin marca
+                {% endif %}
+                <br>
+                <i class="bi bi-tag"></i> Categoría: 
+                <a href="{% url 'catalogo:lista_productos' %}?categoria={{ producto.categoria.slug }}">{{ producto.categoria.nombre }}</a>
+            </p>
+
+            <!-- Calificación promedio -->
+            {% if reseñas %}
+            <div class="mb-3">
+                {% for i in "12345"|make_list %}
+                    {% if forloop.counter <= promedio_calificacion %}
+                    <i class="bi bi-star-fill text-warning"></i>
+                    {% else %}
+                    <i class="bi bi-star text-warning"></i>
+                    {% endif %}
+                {% endfor %}
+                <small class="text-muted">({{ reseñas.count }} reseñas)</small>
+            </div>
+            {% endif %}
+
+            <!-- Precio -->
+            <div class="mb-4">
+                {% if producto.precio_oferta %}
+                <h2 class="text-danger">${{ producto.precio_oferta }}</h2>
+                <p class="text-muted">
+                    <del>${{ producto.precio }}</del> 
+                    <span class="badge bg-success">-{{ porcentaje_descuento|floatformat:0 }}%</span>
+                    <span class="text-success ms-2">Ahorras ${{ descuento|floatformat:2 }}</span>
+                </p>
+                {% else %}
+                <h2>${{ producto.precio }}</h2>
+                {% endif %}
+            </div>
+
+            <!-- Stock -->
+            <div class="mb-4">
+                {% if producto.en_stock %}
+                <span class="badge bg-success p-2">
+                    <i class="bi bi-check-circle"></i> En stock ({{ producto.existencias }} disponibles)
+                </span>
+                {% else %}
+                <span class="badge bg-danger p-2">
+                    <i class="bi bi-x-circle"></i> Sin stock
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Formulario de compra -->
+            {% if producto.en_stock %}
+            <form action="{% url 'catalogo:agregar_al_carrito' producto.id %}" method="POST" class="mb-4">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-auto">
+                        <label for="cantidad" class="form-label">Cantidad:</label>
+                        <input type="number" class="form-control" id="cantidad" name="cantidad" 
+                               value="1" min="1" max="{{ producto.existencias }}" style="width: 100px;">
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary btn-lg d-block">
+                            <i class="bi bi-cart-plus"></i> Agregar al carrito
+                        </button>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
+
+            <!-- Descripción -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Descripción</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ producto.descripcion|linebreaks }}</p>
+                </div>
+            </div>
+
+            <!-- Especificaciones técnicas -->
+            {% if producto.especificaciones %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Especificaciones</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        {% for key, value in producto.especificaciones.items %}
+                        <tr>
+                            <th style="width: 40%;">{{ key }}</th>
+                            <td>{{ value }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+       
+{% if producto.venta_por_caja %}
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-header bg-gradient-primary text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <h5 class="mb-0">
+            <i class="bi bi-box-seam me-2"></i> Contenido de la caja
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-7">
+                <!-- Lista de productos incluidos -->
+                <div id="contenidoCaja" class="mt-2">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-2">Cargando contenido de la caja...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-5">
+                <!-- Resumen de la caja con precio destacado -->
+                <div id="resumenCaja" style="display: none;">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body text-center">
+                            <!-- Total de unidades -->
+                            <div class="mb-3">
+                                <span class="badge bg-primary rounded-pill px-3 py-2">
+                                    <i class="bi bi-package"></i> 
+                                    <span id="totalUnidades">0</span> unidades totales
+                                </span>
+                            </div>
+                            
+                            <!-- Precio por unidad (opcional) -->
+                            <div class="mb-2">
+                                <small>Precio por unidad</small>
+                                <p>
+                                    <small id="precioPorUnidad">$0.00</small>
+                                </p>
+                            </div>
+                            
+                            <!-- PRECIO DE LA CAJA DESTACADO -->
+                            <div class="p-3 mb-3" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 15px;">
+                                <small class="text-uppercase text-muted">Precio de la caja</small>
+                                <div class="display-4 fw-bold text-primary mb-0" id="precioCaja">$0.00</div>
+                                <div class="mt-2">
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-tag"></i> Mejor precio
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Indicador de ahorro -->
+                            <div class="alert alert-success py-2 mb-3" id="ahorroIndicator" style="display: none;">
+                                <i class="bi bi-graph-up"></i>
+                                <strong>¡Ahorras <span id="porcentajeAhorro">0</span>%!</strong>
+                                <br>
+                                <small>Comprando por caja</small>
+                            </div>
+                            
+                            <!-- Formulario de compra -->
+                            <form action="{% url 'catalogo:agregar_al_carrito' producto.id %}" method="POST" class="mt-3">
+                                {% csrf_token %}
+                                <input type="hidden" name="tipo_venta" value="caja">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label for="cantidad_cajas" class="form-label small">Cantidad de cajas:</label>
+                                        <input type="number" class="form-control text-center" id="cantidad_cajas" 
+                                               name="cantidad" value="1" min="1" 
+                                               max="{{ producto.existencias }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small">&nbsp;</label>
+                                        <button type="submit" class="btn btn-success w-100 py-2">
+                                            <i class="bi bi-cart-check-fill"></i> Comprar caja
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                            
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle-fill"></i> 
+                                    Cada caja contiene múltiples unidades
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    {% endif %}  
+
+     <!-- Script para cargar contenido de la caja -->
+{% if producto.venta_por_caja %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productoId = {{ producto.id }};
+    const contenidoDiv = document.getElementById('contenidoCaja');
+    const resumenDiv = document.getElementById('resumenCaja');
+    
+    function formatMoney(amount) {
+        return '$' + parseFloat(amount).toFixed(2);
+    }
+    
+    fetch(`/api/caja/contenido/${productoId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Calcular precio total de artículos individuales
+                let subtotalGeneral = 0;
+                
+                let html = `
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end">Precio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.contenido.forEach(item => {
+                    const subtotal = item.cantidad * parseFloat(item.precio_unitario);
+                    subtotalGeneral += subtotal;
+                    
+                    html += `
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    ${item.imagen ? 
+                                        `<a href="/producto/${item.slug}/" target="_blank" class="text-decoration-none">
+                                            <img src="${item.imagen}" alt="${item.nombre}" style="width: 35px; height: 35px; object-fit: cover; margin-right: 10px;" class="rounded">
+                                        </a>` : 
+                                        `<a href="/producto/${item.slug}/" target="_blank" class="text-decoration-none">
+                                            <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="width: 35px; height: 35px; margin-right: 10px;">
+                                                <i class="bi bi-image" style="font-size: 0.8rem;"></i>
+                                            </div>
+                                        </a>`
+                                    }
+                                    <div>
+                                        <a href="/producto/${item.slug}/" target="_blank" class="text-decoration-none text-dark">
+                                            <small><strong>${item.nombre}</strong></small>
+                                        </a>
+                                        ${item.stock !== undefined ? 
+                                            `<br><small class="${item.stock > 0 ? 'text-success' : 'text-danger'}">
+                                                <i class="bi bi-${item.stock > 0 ? 'check-circle' : 'x-circle'}"></i> 
+                                                ${item.stock} und.
+                                            </small>` : ''
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <span class="badge bg-secondary">${item.cantidad}</span>
+                            </td>
+                            <td class="text-end align-middle">${formatMoney(item.precio_unitario)}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr class="fw-bold">
+                                    <td colspan="2" class="text-end">Valor individual:</td>
+                                    <td class="text-end text-muted"><del>${formatMoney(subtotalGeneral)}</del></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
+                
+                contenidoDiv.innerHTML = html;
+                
+                // Actualizar resumen
+                const totalUnidades = data.producto.total_unidades;
+                const precioCaja = parseFloat(data.producto.precio_caja);
+                const precioPorUnidad = parseFloat(data.producto.precio_por_unidad);
+                
+                document.getElementById('totalUnidades').textContent = totalUnidades;
+                document.getElementById('precioPorUnidad').innerHTML = formatMoney(precioPorUnidad);
+                document.getElementById('precioCaja').innerHTML = formatMoney(precioCaja);
+                
+                // Calcular y mostrar ahorro si corresponde
+                const ahorro = subtotalGeneral - precioCaja;
+                if (ahorro > 0) {
+                    const porcentajeAhorro = (ahorro / subtotalGeneral * 100).toFixed(1);
+                    const ahorroIndicator = document.getElementById('ahorroIndicator');
+                    const porcentajeSpan = document.getElementById('porcentajeAhorro');
+                    
+                    porcentajeSpan.textContent = porcentajeAhorro;
+                    ahorroIndicator.style.display = 'block';
+                    
+                    // También podemos mostrar el ahorro en el precio destacado
+                    const precioDiv = document.querySelector('#precioCaja').parentElement;
+                    const ahorroBadge = document.createElement('div');
+                    ahorroBadge.className = 'mt-2';
+                    ahorroBadge.innerHTML = `
+                        <span class="badge bg-warning text-dark">
+                            <i class="bi bi-piggy-bank"></i> Ahorras ${formatMoney(ahorro)}
+                        </span>
+                    `;
+                    precioDiv.appendChild(ahorroBadge);
+                }
+                
+                resumenDiv.style.display = 'block';
+            } else {
+                contenidoDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Error al cargar el contenido: ${data.error}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            contenidoDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Error al cargar el contenido de la caja
+                </div>
+            `;
+        });
+});
+</script>
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .display-4 {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    #precioCaja {
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .btn-success {
+        transition: all 0.3s ease;
+    }
+    
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    }
+</style>
+{% endif %}
+
+    <!-- Sección de reseñas -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3>Reseñas de clientes</h3>
+            <hr>
+
+            {% if user.is_authenticated %}
+                {% if not usuario_reseño %}
+                <!-- Formulario para agregar reseña -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Escribe una reseña</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{% url 'catalogo:agregar_reseña' producto.id %}" method="POST">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label">Calificación</label>
+                                <div class="rating">
+                                    {% for i in "12345"|make_list %}
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="calificacion" 
+                                               id="star{{ i }}" value="{{ forloop.counter }}" required>
+                                        <label class="form-check-label" for="star{{ i }}">{{ forloop.counter }} ★</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="comentario" class="form-label">Comentario</label>
+                                <textarea class="form-control" id="comentario" name="comentario" 
+                                          rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-star"></i> Publicar reseña
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <a href="{% url 'catalogo:login' %}">Inicia sesión</a> para escribir una reseña.
+            </div>
+            {% endif %}
+
+            <!-- Lista de reseñas -->
+            {% for reseña in reseñas %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            <i class="bi bi-person-circle"></i> {{ reseña.usuario.username }}
+                        </h6>
+                        <small class="text-muted">{{ reseña.fecha_creacion|date:"d/m/Y" }}</small>
+                    </div>
+                    <div class="mb-2">
+                        {% for i in "12345"|make_list %}
+                            {% if forloop.counter <= reseña.calificacion %}
+                            <i class="bi bi-star-fill text-warning"></i>
+                            {% else %}
+                            <i class="bi bi-star text-warning"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <p class="card-text">{{ reseña.comentario }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">No hay reseñas para este producto. ¡Sé el primero en opinar!</p>
+            {% endfor %}
+        </div>
+    </div>
+
+<!-- Productos relacionados en carrusel -->
+{% if relacionados %}
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>Productos relacionados</h3>
+            <div class="carousel-controls">
+                <button class="btn btn-outline-primary btn-sm me-2" id="relatedPrevBtn" disabled>
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </button>
+                <button class="btn btn-outline-primary btn-sm" id="relatedNextBtn">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        <hr>
+        
+        <!-- Contenedor del carrusel -->
+        <div class="related-carousel-container position-relative">
+            <div class="related-carousel-wrapper overflow-hidden">
+                <div class="related-carousel-track" id="relatedCarouselTrack" style="display: flex; transition: transform 0.3s ease-in-out;">
+                    {% for relacionado in relacionados %}
+                    <div class="related-carousel-item" style="flex: 0 0 227.2px; margin-right: 12px;">
+                        <div class="card producto-card h-100 position-relative">
+                            <!-- Enlace que cubre toda la tarjeta -->
+                            <a href="{% url 'catalogo:detalle_producto' relacionado.slug %}" class="stretched-link text-decoration-none" aria-label="Ver detalles de {{ relacionado.nombre }}"></a>
+                            
+                            {% if relacionado.imagen_principal %}
+                            <img src="{{ relacionado.imagen_principal.url }}" class="card-img-top producto-img" alt="{{ relacionado.nombre }}" style="height: 180px; object-fit: contain;">
+                            {% else %}
+                            <div class="card-img-top producto-img bg-secondary d-flex align-items-center justify-content-center" style="height: 180px;">
+                                <i class="bi bi-image text-white" style="font-size: 3rem;"></i>
+                            </div>
+                            {% endif %}
+                            <div class="card-body">
+                                <h6 class="card-title">{{ relacionado.nombre|truncatechars:40 }}</h6>
+                                
+                                <!-- Precio con descuento si aplica -->
+                                <div class="price-container">
+                                    {% if relacionado.precio_oferta %}
+                                    <s class="text-muted small">${{ relacionado.precio }}</s>
+                                    <p class="card-text mb-0">
+                                        <strong class="text-danger">${{ relacionado.precio_oferta }}</strong>
+                                        <span class="badge bg-success ms-2">-{{ relacionado.porcentaje_descuento|floatformat:0 }}%</span>
+                                    </p>
+                                    {% else %}
+                                    <p class="card-text">
+                                        <strong>${{ relacionado.precio }}</strong>
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Stock y envío -->
+                                {% if relacionado.en_stock %}
+                                <small class="text-success">
+                                    <i class="bi bi-check-circle-fill"></i> En stock
+                                </small>
+                                {% else %}
+                                <small class="text-danger">
+                                    <i class="bi bi-x-circle-fill"></i> Sin stock
+                                </small>
+                                {% endif %}
+                                
+                                <!-- Envío gratis para primera compra (ejemplo) -->
+                                <small class="d-block text-primary mt-1">
+                                    <i class="bi bi-truck"></i> Envío gratis*
+                                </small>
+                                
+                                <!-- Ya no hay botón "Ver producto", solo el stretched-link -->
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .related-carousel-container {
+        position: relative;
+    }
+    
+    .related-carousel-wrapper {
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+    }
+    
+    .related-carousel-track {
+        display: flex;
+        transition: transform 0.3s ease-in-out;
+        will-change: transform;
+    }
+    
+    .related-carousel-item {
+        flex: 0 0 227.2px;
+        margin-right: 12px;
+    }
+    
+    .carousel-controls button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    /* Media queries para responsive */
+    @media (max-width: 768px) {
+        .related-carousel-item {
+            flex: 0 0 200px;
+            margin-right: 10px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .related-carousel-item {
+            flex: 0 0 180px;
+            margin-right: 8px;
+        }
+    }
+
+    .related-carousel-wrapper {
+        position: relative;
+        scrollbar-width: thin;
+        scrollbar-color: #ddd #f1f1f1;
+    }
+
+    .related-carousel-wrapper::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .related-carousel-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    .related-carousel-wrapper::-webkit-scrollbar-thumb {
+        background: #ddd;
+        border-radius: 3px;
+    }
+
+    .related-carousel-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #ccc;
+    }
+
+    .producto-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        cursor: pointer;
+    }
+
+    .producto-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .price-container s {
+        font-size: 0.8rem;
+    }
+    
+    /* Asegurar que el stretched-link no interfiera con el contenido interno si lo hubiera */
+    .stretched-link {
+        z-index: 1;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const track = document.getElementById('relatedCarouselTrack');
+        const prevBtn = document.getElementById('relatedPrevBtn');
+        const nextBtn = document.getElementById('relatedNextBtn');
+        
+        if (!track || !prevBtn || !nextBtn) return;
+        
+        let currentIndex = 0;
+        const items = document.querySelectorAll('.related-carousel-item');
+        const itemsPerView = getItemsPerView();
+        const totalItems = items.length;
+        const maxIndex = Math.max(0, totalItems - itemsPerView);
+        
+        function getItemsPerView() {
+            if (window.innerWidth < 576) return 2;
+            if (window.innerWidth < 992) return 3;
+            return 4;
+        }
+        
+        function updateCarousel() {
+            const itemWidth = items[0]?.offsetWidth + 12 || 239.2; // ancho + margen
+            const translateX = -currentIndex * itemWidth;
+            track.style.transform = `translate3d(${translateX}px, 0px, 0px)`;
+            
+            // Actualizar estado de botones
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex >= maxIndex;
+        }
+        
+        function updateMaxIndex() {
+            const newItemsPerView = getItemsPerView();
+            const newMaxIndex = Math.max(0, totalItems - newItemsPerView);
+            if (currentIndex > newMaxIndex) {
+                currentIndex = newMaxIndex;
+            }
+            return newMaxIndex;
+        }
+        
+        function handleResize() {
+            const newMaxIndex = updateMaxIndex();
+            updateCarousel();
+        }
+        
+        prevBtn.addEventListener('click', function() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateCarousel();
+            }
+        });
+        
+        nextBtn.addEventListener('click', function() {
+            const itemsPerView = getItemsPerView();
+            const maxIndexActual = Math.max(0, totalItems - itemsPerView);
+            if (currentIndex < maxIndexActual) {
+                currentIndex++;
+                updateCarousel();
+            }
+        });
+        
+        window.addEventListener('resize', handleResize);
+        updateCarousel();
+    });
+</script>
+{% endif %}
+
+{% endblock %}

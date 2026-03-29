@@ -1,0 +1,108 @@
+<!-- templates/catalogo/instrucciones_transferencia.html -->
+{% extends 'catalogo/base.html' %}
+
+{% block title %}Instrucciones de Pago - Mi Tienda{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Instrucciones para Transferencia Bancaria</h4>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Alerta de tiempo límite -->
+                    <div class="alert alert-warning">
+                        <i class="bi bi-clock-history"></i>
+                        <strong>Tienes hasta {{ tiempo_limite|date:"d/m/Y H:i" }}</strong>
+                        para realizar el pago. Después de este tiempo, el pedido será cancelado.
+                    </div>
+
+                    <!-- Datos del pedido -->
+                    <div class="mb-4">
+                        <h5>Pedido #{{ pedido.id }}</h5>
+                        <p><strong>Total a pagar:</strong> <span class="text-success fs-4">${{ pedido.total|floatformat:2 }}</span></p>
+                    </div>
+
+                    <!-- Datos bancarios -->
+                    <div class="card mb-4 bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">Datos Bancarios</h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Banco:</th>
+                                    <td>{{ datos_bancarios.banco }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Titular:</th>
+                                    <td>{{ datos_bancarios.titular }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Número de cuenta:</th>
+                                    <td><strong>{{ datos_bancarios.cuenta }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>CLABE:</th>
+                                    <td><strong>{{ datos_bancarios.clabe }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Referencia:</th>
+                                    <td>
+                                        <span class="badge bg-dark fs-6 p-2">{{ referencia_formateada }}</span>
+                                        <small class="text-muted d-block">(Incluir esta referencia en la transferencia)</small>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Instrucciones -->
+                    <div class="mb-4">
+                        <h5>Pasos a seguir:</h5>
+                        <ol class="list-group list-group-numbered">
+                            <li class="list-group-item">Realiza la transferencia por el monto exacto de <strong>${{ pedido.total|floatformat:2 }}</strong></li>
+                            <li class="list-group-item">Incluye la referencia <strong>{{ referencia_formateada }}</strong> en la transferencia</li>
+                            <li class="list-group-item">Guarda tu comprobante de pago</li>
+                            <li class="list-group-item">Sube el comprobante usando el formulario de abajo</li>
+                        </ol>
+                    </div>
+
+                    <!-- Formulario para subir comprobante -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Subir comprobante de pago</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" enctype="multipart/form-data" action="{% url 'catalogo:subir_comprobante' pedido.id %}">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label for="comprobante" class="form-label">Selecciona tu comprobante (PDF, JPG, PNG)</label>
+                                    <input type="file" class="form-control" id="comprobante" name="comprobante" accept=".pdf,.jpg,.jpeg,.png" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-upload"></i> Subir comprobante
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Nota importante -->
+                    <div class="alert alert-info mt-4">
+                        <i class="bi bi-info-circle"></i>
+                        Una vez que recibamos tu comprobante, verificaremos el pago y te notificaremos por correo electrónico.
+                        Este proceso puede tomar hasta 24 horas hábiles.
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <a href="{% url 'catalogo:mis_pedidos' %}" class="btn btn-outline-secondary">
+                            Ver mis pedidos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

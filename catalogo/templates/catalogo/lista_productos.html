@@ -1,0 +1,321 @@
+{% extends 'catalogo/base.html' %}
+{% load static %}
+
+{% block title %}Productos - Mi Tienda{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- Sidebar con filtros -->
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Filtros</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{% url 'catalogo:lista_productos' %}">
+                        {% if request.GET.q %}
+                        <input type="hidden" name="q" value="{{ request.GET.q }}">
+                        {% endif %}
+                        
+                        <!-- Categorías -->
+                        <h6>Categorías</h6>
+                        <div class="mb-3">
+                            {% for categoria in categorias %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="categoria" 
+                                       id="cat{{ categoria.id }}" value="{{ categoria.slug }}"
+                                       {% if categoria_activa == categoria.slug %}checked{% endif %}>
+                                <label class="form-check-label" for="cat{{ categoria.id }}">
+                                    {{ categoria.nombre }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="categoria" 
+                                       id="cat-todas" value="" 
+                                       {% if not categoria_activa %}checked{% endif %}>
+                                <label class="form-check-label" for="cat-todas">
+                                    Todas las categorías
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Marcas -->
+                        <h6>Marcas</h6>
+                        <div class="mb-3">
+                            {% for marca in marcas %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="marca" 
+                                       id="marca{{ marca.id }}" value="{{ marca.slug }}"
+                                       {% if marca_activa == marca.slug %}checked{% endif %}>
+                                <label class="form-check-label" for="marca{{ marca.id }}">
+                                    {{ marca.nombre }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="marca" 
+                                       id="marca-todas" value=""
+                                       {% if not marca_activa %}checked{% endif %}>
+                                <label class="form-check-label" for="marca-todas">
+                                    Todas las marcas
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Rango de precios -->
+                        <h6>Rango de Precios</h6>
+                        <div class="mb-3">
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">Min</span>
+                                <input type="number" class="form-control" name="precio_min" 
+                                       placeholder="0" value="{{ request.GET.precio_min }}">
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text">Max</span>
+                                <input type="number" class="form-control" name="precio_max" 
+                                       placeholder="100000" value="{{ request.GET.precio_max }}">
+                            </div>
+                        </div>
+
+                        <!-- Ordenar por -->
+                        <h6>Ordenar por</h6>
+                        <div class="mb-3">
+                            <select class="form-select" name="orden">
+                                <option value="-fecha_creacion" {% if request.GET.orden == '-fecha_creacion' %}selected{% endif %}>Más recientes</option>
+                                <option value="precio" {% if request.GET.orden == 'precio' %}selected{% endif %}>Precio: menor a mayor</option>
+                                <option value="-precio" {% if request.GET.orden == '-precio' %}selected{% endif %}>Precio: mayor a menor</option>
+                                <option value="nombre" {% if request.GET.orden == 'nombre' %}selected{% endif %}>Nombre: A-Z</option>
+                                <option value="-nombre" {% if request.GET.orden == '-nombre' %}selected{% endif %}>Nombre: Z-A</option>
+                                <option value="-vendidos" {% if request.GET.orden == '-vendidos' %}selected{% endif %}>Más vendidos</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-funnel"></i> Aplicar Filtros
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Listado de productos -->
+        <div class="col-md-9">
+            <!-- Cabecera -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Productos</h2>
+                <span class="text-muted">{{ productos.paginator.count }} productos encontrados</span>
+            </div>
+
+            <!-- Resultados de búsqueda -->
+            {% if query %}
+            <div class="alert alert-info">
+                Resultados para: <strong>"{{ query }}"</strong>
+            </div>
+            {% endif %}
+
+            <!-- Grid de productos -->
+            <div class="row">
+                {% for producto in productos %}
+                <div class="col-md-4 mb-4">
+                    <div class="card producto-card h-100 position-relative">
+                        <!-- Enlace que cubre toda la tarjeta -->
+                        <a href="{% url 'catalogo:detalle_producto' producto.slug %}" class="stretched-link text-decoration-none" aria-label="Ver detalles de {{ producto.nombre }}"></a>
+                        
+                        {% if not producto.en_stock %}
+                        <span class="badge bg-secondary badge-stock" style="z-index: 2;">SIN STOCK</span>
+                        {% elif producto.precio_oferta %}
+                        <span class="badge bg-danger badge-stock" style="z-index: 2;">OFERTA</span>
+                        {% endif %}
+                        
+                        {% if producto.imagen_principal %}
+                        <img src="{{ producto.imagen_principal.url }}" class="card-img-top producto-img" alt="{{ producto.nombre }}">
+                        {% else %}
+                        <div class="card-img-top producto-img bg-secondary d-flex align-items-center justify-content-center">
+                            <i class="bi bi-image text-white" style="font-size: 3rem;"></i>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="card-body">
+                            <h5 class="card-title">{{ producto.nombre|truncatechars:50 }}</h5>
+                            <p class="card-text text-muted">
+                                <small>
+                                    <i class="bi bi-tag"></i> {{ producto.categoria.nombre }}<br>
+                                    <i class="bi bi-building"></i> {{ producto.marca.nombre|default:"Sin marca" }}
+                                </small>
+                            </p>
+                            
+                            <!-- Precios mejor diferenciados -->
+                            <div class="mb-2">
+                                {% if producto.precio_oferta %}
+                                    <div class="d-flex flex-column">
+                                        <span class="precio-normal text-muted" style="text-decoration: line-through; font-size: 0.9rem;">
+                                            ${{ producto.precio }}
+                                        </span>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="precio-oferta h4 text-danger mb-0 fw-bold">
+                                                ${{ producto.precio_oferta }}
+                                            </span>
+                                            <span class="badge bg-danger rounded-pill" 
+                                                data-precio="{{ producto.precio }}" 
+                                                data-oferta="{{ producto.precio_oferta }}">
+                                                -%
+                                            </span>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="h4 text-primary mb-0 fw-bold">${{ producto.precio }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Solo botón de agregar al carrito -->
+                            <div class="d-grid gap-2" style="position: relative; z-index: 3;">
+                                {% if producto.en_stock %}
+                                <form action="{% url 'catalogo:agregar_al_carrito' producto.id %}" method="POST" onclick="event.stopPropagation();">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="cantidad" value="1">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                                        <i class="bi bi-cart-plus"></i> Agregar al carrito
+                                    </button>
+                                </form>
+                                {% else %}
+                                <button class="btn btn-secondary btn-sm w-100" disabled onclick="event.stopPropagation();">
+                                    <i class="bi bi-cart-x"></i> Sin stock
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-warning text-center">
+                        <i class="bi bi-exclamation-triangle fs-1"></i>
+                        <h4>No se encontraron productos</h4>
+                        <p>Intenta con otros filtros o términos de búsqueda.</p>
+                        <a href="{% url 'catalogo:lista_productos' %}" class="btn btn-primary">
+                            <i class="bi bi-arrow-repeat"></i> Limpiar filtros
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Paginación -->
+            {% if productos.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if productos.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page=1">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ productos.previous_page_number }}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for i in productos.paginator.page_range %}
+                        {% if productos.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                        {% elif i > productos.number|add:'-3' and i < productos.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ i }}">{{ i }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if productos.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ productos.next_page_number }}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ productos.paginator.num_pages }}">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[data-precio]').forEach(function(element) {
+            // Limpiar y convertir los valores correctamente
+            let precioStr = element.getAttribute('data-precio');
+            let ofertaStr = element.getAttribute('data-oferta');
+            
+            // Eliminar cualquier caracter no numérico excepto punto y convertir a número
+            let precio = parseFloat(String(precioStr).replace(/[^0-9.-]/g, ''));
+            let oferta = parseFloat(String(ofertaStr).replace(/[^0-9.-]/g, ''));
+            
+            console.log('Precio:', precio, 'Oferta:', oferta); // Para depuración
+            
+            if (!isNaN(precio) && !isNaN(oferta) && precio > 0 && oferta > 0 && oferta < precio) {
+                let descuento = Math.round(((precio - oferta) / precio) * 100);
+                element.textContent = '-' + descuento + '%';
+            } else {
+                element.textContent = '-0%';
+            }
+        });
+    });
+</script>
+<style>
+    /* Estilos adicionales para mejorar la visualización de precios */
+    .precio-oferta {
+        font-weight: bold;
+        color: #dc3545;
+        font-size: 1.25rem;
+    }
+    
+    .precio-normal {
+        text-decoration: line-through;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .producto-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .producto-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Asegurar que el contenido clickeable no interfiera */
+    .producto-card form,
+    .producto-card button {
+        position: relative;
+        z-index: 2;
+    }
+    
+    .stretched-link {
+        z-index: 1;
+    }
+    
+    .badge-stock {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 2;
+    }
+    
+    /* Hacer que la tarjeta tenga cursor pointer para indicar que es clickeable */
+    .producto-card {
+        cursor: pointer;
+    }
+</style>
+{% endblock %}

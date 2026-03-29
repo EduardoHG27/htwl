@@ -1,0 +1,258 @@
+{% extends 'catalogo/base.html' %}
+{% load static %}
+
+{% block title %}Checkout - Mi Tienda{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Finalizar Compra</h2>
+
+    <div class="row">
+        <div class="col-md-7">
+            <!-- Formulario de envío -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Información de contacto y entrega</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="checkoutForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="nombre_completo" class="form-label">Nombre completo *</label>
+                            <input type="text" class="form-control" id="nombre_completo" 
+                                name="nombre_completo" required
+                                value="{% if form_data.nombre_completo %}{{ form_data.nombre_completo }}{% else %}{{ user_data.full_name }}{% endif %}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="telefono" class="form-label">Teléfono *</label>
+                            <input type="tel" class="form-control" id="telefono" 
+                                   name="telefono" required>
+                        </div>
+
+                        <!-- Tipo de entrega -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Tipo de entrega *</label>
+                            
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="tipo_entrega" 
+                                       id="envio" value="envio" checked onclick="toggleEntrega()">
+                                <label class="form-check-label" for="envio">
+                                    <i class="bi bi-truck"></i> Envío a domicilio
+                                    <small class="text-muted d-block">Costo: $110.00</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo_entrega" 
+                                       id="recoleccion" value="recoleccion" onclick="toggleEntrega()">
+                                <label class="form-check-label" for="recoleccion">
+                                    <i class="bi bi-shop"></i> Recolección en tienda
+                                    <small class="text-muted d-block">Sin costo adicional</small>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Dirección de envío (se muestra/oculta según selección) -->
+                        <div id="direccionEnvio">
+                            <div class="mb-3">
+                                <label for="direccion" class="form-label">Dirección *</label>
+                                <textarea class="form-control" id="direccion" name="direccion" 
+                                          rows="2" required></textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="ciudad" class="form-label">Ciudad *</label>
+                                    <input type="text" class="form-control" id="ciudad" 
+                                           name="ciudad" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="codigo_postal" class="form-label">Código Postal *</label>
+                                    <input type="text" class="form-control" id="codigo_postal" 
+                                           name="codigo_postal" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Método de pago - Solo transferencia -->
+                        <div class="card mb-4 mt-4">
+                            <div class="card-header bg-dark text-white">
+                                <h5 class="mb-0">Método de pago</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i>
+                                    Esta es una tienda de demostración. No se procesarán pagos reales.
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="metodo_pago" 
+                                        id="transferencia" value="transferencia" checked>
+                                    <label class="form-check-label" for="transferencia">
+                                        <i class="bi bi-bank"></i> Transferencia bancaria
+                                        <small class="text-muted d-block">Paga desde tu banca en línea</small>
+                                    </label>
+                                </div>
+
+                                <!-- Datos bancarios para transferencia -->
+                                <div class="alert alert-secondary mt-3" id="datos-bancarios">
+                                    <i class="bi bi-bank"></i>
+                                    <strong>Datos para transferencia:</strong><br>
+                                    Banco: Banco Ejemplo<br>
+                                    Cuenta: 1234-5678-9012-3456<br>
+                                    CLABE: 012345678901234567<br>
+                                    Titular: Mi Tienda S.A. de C.V.<br>
+                                    <small class="text-muted">Una vez realizada la transferencia, envía tu comprobante a ventas@mitienda.com</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón de confirmar -->
+                        <div class="d-grid gap-2 mt-3">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle"></i> Confirmar pedido
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen del pedido -->
+        <div class="col-md-5">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Resumen del pedido</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Productos -->
+                    {% for item in items %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <span class="fw-bold">{{ item.producto.nombre|truncatechars:30 }}</span>
+                            <br>
+                            <small class="text-muted">Cantidad: {{ item.cantidad }} x ${{ item.producto.precio_actual }}</small>
+                        </div>
+                        <span class="fw-bold">${{ item.subtotal|floatformat:2 }}</span>
+                    </div>
+                    {% endfor %}
+
+                    <hr>
+
+                    <!-- Totales -->
+                    <table class="table table-sm">
+                        <tr>
+                            <td>Subtotal:</td>
+                            <td class="text-end">${{ subtotal|floatformat:2 }}</td>
+                        </tr>
+                        <tr id="envio-row">
+                            <td>Envío:</td>
+                            <td class="text-end" id="costo-envio">${{ costo_envio|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td>IVA (16%):</td>
+                            <td class="text-end">${{ iva|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="fw-bold fs-5">
+                            <td>Total:</td>
+                            <td class="text-end text-primary" id="total-final">${{ total_con_envio|floatformat:2 }}</td>
+                        </tr>
+                    </table>
+
+                    <!-- Información adicional según tipo de entrega -->
+                    <div id="info-recoleccion" class="alert alert-success d-none">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        <strong>Recolección en tienda:</strong><br>
+                        Dirección: Av. Principal #123, Centro<br>
+                        Horario: Lunes a Viernes 9am - 6pm
+                    </div>
+
+                    <p class="text-muted small mt-3">
+                        <i class="bi bi-shield-check"></i>
+                        Al confirmar tu pedido, aceptas nuestros términos y condiciones.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para manejar la lógica de entrega -->
+<script>
+function toggleEntrega() {
+    const envio = document.getElementById('envio').checked;
+    const direccionEnvio = document.getElementById('direccionEnvio');
+    const envioRow = document.getElementById('envio-row');
+    const costoEnvio = document.getElementById('costo-envio');
+    const totalFinal = document.getElementById('total-final');
+    const infoRecoleccion = document.getElementById('info-recoleccion');
+    
+    // Valores desde Django
+    const subtotal = {{ subtotal|floatformat:2 }};
+    const iva = {{ iva|floatformat:2 }};
+    const totalConEnvio = {{ total_con_envio|floatformat:2 }};
+    const totalSinEnvio = {{ total_sin_envio|floatformat:2 }};
+    
+    if (envio) {
+        // Modo envío
+        direccionEnvio.style.display = 'block';
+        envioRow.style.display = 'table-row';
+        costoEnvio.textContent = '${{ costo_envio|floatformat:2 }}';
+        totalFinal.textContent = '$' + totalConEnvio.toFixed(2);
+        infoRecoleccion.classList.add('d-none');
+        
+        // Hacer requeridos los campos de dirección
+        document.getElementById('direccion').required = true;
+        document.getElementById('ciudad').required = true;
+        document.getElementById('codigo_postal').required = true;
+    } else {
+        // Modo recolección
+        direccionEnvio.style.display = 'none';
+        envioRow.style.display = 'none';
+        totalFinal.textContent = '$' + totalSinEnvio.toFixed(2);
+        infoRecoleccion.classList.remove('d-none');
+        
+        // Quitar requeridos de los campos de dirección
+        document.getElementById('direccion').required = false;
+        document.getElementById('ciudad').required = false;
+        document.getElementById('codigo_postal').required = false;
+    }
+}
+
+// Inicializar estado al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    toggleEntrega();
+});
+</script>
+
+<style>
+.sticky-top {
+    z-index: 1;
+}
+
+/* Animación suave al mostrar/ocultar */
+#direccionEnvio {
+    transition: all 0.3s ease;
+}
+
+.table td {
+    padding: 0.5rem;
+}
+
+.fs-5 {
+    font-size: 1.25rem;
+}
+
+/* Estilo para los radios de entrega */
+.form-check-input:checked + .form-check-label {
+    color: #198754;
+    font-weight: 500;
+}
+
+.form-check-input:checked + .form-check-label small {
+    color: #6c757d !important;
+}
+</style>
+{% endblock %}
