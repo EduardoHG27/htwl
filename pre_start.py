@@ -39,7 +39,7 @@ if __name__ == "__main__":
     execute_from_command_line(['manage.py', 'migrate'])
     print("✅ Migraciones completadas!")
     
-    # Crear superusuario
+    # Crear superusuario usando setup.py
     print("👤 Creando superusuario...")
-    execute_from_command_line(['manage.py', 'setup'])
+    os.system('python setup.py')  # ✅ Cambiado aquí
     print("✅ Setup completado!")
