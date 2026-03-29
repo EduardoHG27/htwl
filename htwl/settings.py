@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # 🔐 Seguridad - USAR VARIABLES DE ENTORNO
 SECRET_KEY = os.environ.get('SECRET_KEY', 'tu-clave-secreta-local')
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 # 🌐 ALLOWED_HOSTS - CRÍTICO PARA RAILWAY
 ALLOWED_HOSTS = [
