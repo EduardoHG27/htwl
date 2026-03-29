@@ -5,6 +5,7 @@ import time
 import django
 from django.db import connections
 from django.db.utils import OperationalError
+from django.core.management import execute_from_command_line
 
 def wait_for_db():
     print("⏳ Esperando a que PostgreSQL esté lista...")
@@ -29,8 +30,16 @@ def wait_for_db():
 if __name__ == "__main__":
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'htwl.settings')
     django.setup()
+    
+    # Esperar a la base de datos
     wait_for_db()
+    
+    # Ejecutar migraciones
     print("🔄 Ejecutando migraciones...")
-    from django.core.management import execute_from_command_line
     execute_from_command_line(['manage.py', 'migrate'])
     print("✅ Migraciones completadas!")
+    
+    # Crear superusuario
+    print("👤 Creando superusuario...")
+    execute_from_command_line(['manage.py', 'setup'])
+    print("✅ Setup completado!")
