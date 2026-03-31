@@ -1,4 +1,4 @@
-# catalogo/views.py
+# views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth import login, logout, authenticate
@@ -21,21 +21,9 @@ import json
 from decimal import Decimal
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
+from allauth.account.models import EmailAddress
 
-# Página principal
-def index(request):
-    productos_destacados = Producto.objects.filter(destacado=True, disponible=True)[:8]
-    productos_nuevos = Producto.objects.filter(disponible=True).order_by('-fecha_creacion')[:8]
-    productos_mas_vendidos = Producto.objects.filter(disponible=True).order_by('-vendidos')[:8]
-    categorias = Categoria.objects.all()[:6]
-    
-    context = {
-        'destacados': productos_destacados,
-        'nuevos': productos_nuevos,
-        'mas_vendidos': productos_mas_vendidos,
-        'categorias': categorias,
-    }
-    return render(request, 'catalogo/index.html', context)
+
 
 # Productos
 def lista_productos(request):
@@ -82,7 +70,7 @@ def lista_productos(request):
         'categoria_activa': categoria_slug,
         'marca_activa': marca_slug,
     }
-    return render(request, 'catalogo/lista_productos.html', context)
+    return render(request, 'lista_productos.html', context)
 
 def detalle_producto(request, slug):
     producto = get_object_or_404(Producto, slug=slug, disponible=True)
@@ -123,7 +111,7 @@ def detalle_producto(request, slug):
         'descuento': descuento,
         'porcentaje_descuento': porcentaje_descuento,
     }
-    return render(request, 'catalogo/detalle_producto.html', context)
+    return render(request, 'detalle_producto.html', context)
 
 # Autenticación
 def registro_view(request):
@@ -139,11 +127,11 @@ def registro_view(request):
         
         if User.objects.filter(username=username).exists():
             messages.error(request, 'El nombre de usuario ya existe')
-            return render(request, 'catalogo/registro.html')
+            return render(request, 'registro.html')
         
         if User.objects.filter(email=email).exists():
             messages.error(request, 'El email ya está registrado')
-            return render(request, 'catalogo/registro.html')
+            return render(request, 'registro.html')
         
         # Crear usuario
         user = User.objects.create_user(username=username, email=email, password=password)
@@ -161,7 +149,7 @@ def registro_view(request):
         messages.success(request, 'Registro exitoso. ¡Bienvenido!')
         return redirect('catalogo:index')
     
-    return render(request, 'catalogo/registro.html')
+    return render(request, 'registro.html')
 
 def login_view(request):
     if request.method == 'POST':
@@ -170,7 +158,48 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
-            # Guardar el carrito de la sesión ANTES de hacer login
+            # Verificar si el email está confirmado
+            try:
+                email_address = EmailAddress.objects.get(user=user, email=user.email)
+                
+                if not email_address.verified:
+                    messages.warning(
+                        request, 
+                        'Tu correo electrónico no está verificado. '
+                        'Por favor revisa tu bandeja de entrada y verifica tu cuenta.'
+                    )
+                    return redirect('catalogo:reenviar_verificacion')
+            except EmailAddress.DoesNotExist:
+                # Si no existe EmailAddress, crearlo y enviar verificación
+                email_address = EmailAddress.objects.create(
+                    user=user,
+                    email=user.email,
+                    verified=False,
+                    primary=True
+                )
+                
+                # Enviar correo de verificación usando el método correcto
+                try:
+                    # Método 1: Usar el adaptador
+                    from allauth.account.utils import perform_login
+                    from allauth.account.adapter import get_adapter
+                    
+                    # Enviar confirmación por email
+                    email_address.send_confirmation(request)
+                    messages.warning(
+                        request, 
+                        'Debes verificar tu correo electrónico. '
+                        'Hemos enviado un enlace de verificación a tu email.'
+                    )
+                except Exception as e:
+                    messages.error(request, f'Error al enviar verificación: {str(e)}')
+                
+                return redirect('catalogo:reenviar_verificacion')
+            
+            # Si está verificado, continuar con login normal
+            login(request, user)
+            
+            # Transferir carrito (tu código existente)
             sesion_id = request.session.session_key
             carrito_sesion = None
             
@@ -180,36 +209,26 @@ def login_view(request):
                 except Carrito.DoesNotExist:
                     pass
             
-            # Hacer login
-            login(request, user)
-            
-            # Transferir carrito de sesión a usuario
             if carrito_sesion:
-                # Obtener o crear carrito del usuario
                 carrito_usuario, created = Carrito.objects.get_or_create(
                     usuario=user, 
                     activo=True,
                     defaults={'sesion_id': None}
                 )
                 
-                # Transferir items
                 for item in carrito_sesion.items.all():
                     item_existente = carrito_usuario.items.filter(producto=item.producto).first()
                     if item_existente:
-                        # Si ya existe, sumar cantidades
                         item_existente.cantidad += item.cantidad
                         item_existente.save()
-                        item.delete()  # Eliminar el item duplicado
+                        item.delete()
                     else:
-                        # Si no existe, transferir el item al carrito del usuario
                         item.carrito = carrito_usuario
                         item.save()
                 
-                # Eliminar carrito de sesión si ya no tiene items
                 if carrito_sesion.items.count() == 0:
                     carrito_sesion.delete()
                 else:
-                    # Si por alguna razón quedaron items, desactivarlo
                     carrito_sesion.activo = False
                     carrito_sesion.save()
             
@@ -218,7 +237,7 @@ def login_view(request):
         else:
             messages.error(request, 'Usuario o contraseña incorrectos')
     
-    return render(request, 'catalogo/login.html')
+    return render(request, 'login.html')
 
 def logout_view(request):
     logout(request)
@@ -278,7 +297,7 @@ def carrito_view(request):
         'iva': iva,
         'total_con_iva': total_con_iva,  # Nuevo: total con IVA incluido
     }
-    return render(request, 'catalogo/carrito.html', context)
+    return render(request, 'carrito.html', context)
 
 def agregar_al_carrito(request, producto_id):
     producto = get_object_or_404(Producto, id=producto_id, disponible=True)
@@ -377,7 +396,7 @@ def checkout_view(request):
         # Validar campos requeridos
         if not nombre_completo or not telefono:
             messages.error(request, 'Por favor completa todos los campos requeridos')
-            return render(request, 'catalogo/checkout.html', {
+            return render(request, 'checkout.html', {
                 'carrito': carrito,
                 'items': carrito.items.all(),
                 'subtotal': subtotal,
@@ -453,7 +472,7 @@ def checkout_view(request):
         'datos_bancarios': settings.DATOS_BANCARIOS,
         'user_data': user_data,  # Datos del usuario para el template
     }
-    return render(request, 'catalogo/checkout.html', context)
+    return render(request, 'checkout.html', context)
 
 @login_required
 def instrucciones_transferencia(request, pedido_id):
@@ -468,7 +487,7 @@ def instrucciones_transferencia(request, pedido_id):
         'tiempo_limite': tiempo_limite,
         'referencia_formateada': f"PEDIDO-{pedido.id}",
     }
-    return render(request, 'catalogo/instrucciones_transferencia.html', context)
+    return render(request, 'instrucciones_transferencia.html', context)
 
 @login_required
 def subir_comprobante(request, pedido_id):
@@ -497,12 +516,12 @@ def pedido_confirmado(request, pedido_id):
         'iva': iva,
         'total_con_iva': total_con_iva,
     }
-    return render(request, 'catalogo/pedido_confirmado.html', context)
+    return render(request, 'pedido_confirmado.html', context)
 
 @login_required
 def mis_pedidos(request):
     pedidos = Pedido.objects.filter(usuario=request.user).order_by('-fecha_creacion')
-    return render(request, 'catalogo/mis_pedidos.html', {'pedidos': pedidos})
+    return render(request, 'mis_pedidos.html', {'pedidos': pedidos})
 
 @login_required
 def agregar_reseña(request, producto_id):
@@ -670,6 +689,43 @@ def exportar_catalogo_pdf(request):
     
     return response
 
+
+@login_required
+def reenviar_verificacion(request):
+    """
+    Vista para reenviar el correo de verificación
+    """
+    if request.method == 'POST':
+        try:
+            # Obtener o crear el EmailAddress para el usuario
+            email_address, created = EmailAddress.objects.get_or_create(
+                user=request.user,
+                email=request.user.email,
+                defaults={'verified': False, 'primary': True}
+            )
+            
+            if email_address.verified:
+                messages.info(request, 'Tu correo ya está verificado. Puedes iniciar sesión normalmente.')
+                # Si ya está verificado, hacer login automático
+                login(request, request.user)
+                return redirect('catalogo:index')
+            
+            # Enviar el correo de confirmación usando el método correcto
+            email_address.send_confirmation(request)
+            
+            messages.success(
+                request, 
+                '¡Correo de verificación enviado! Por favor revisa tu bandeja de entrada '
+                'y sigue las instrucciones para verificar tu cuenta.'
+            )
+            return redirect('account_email_verification_sent')
+            
+        except Exception as e:
+            messages.error(request, f'Error al enviar el correo: {str(e)}')
+            return redirect('catalogo:index')
+    
+    return render(request, 'reenviar_verificacion.html')
+
 @login_required
 def detalle_pedido(request, pedido_id):
     pedido = get_object_or_404(Pedido, id=pedido_id, usuario=request.user)
@@ -677,7 +733,7 @@ def detalle_pedido(request, pedido_id):
         'pedido': pedido,
         'items': pedido.items.all(),
     }
-    return render(request, 'catalogo/detalle_pedido.html', context)
+    return render(request, 'detalle_pedido.html', context)
 
 
 def api_carrito_cantidad(request):
@@ -712,24 +768,6 @@ def index(request):
     categorias = Categoria.objects.all()[:6]
     
     # Obtener imágenes activas del carrusel
-    carrusel_imagenes = CarruselImagen.objects.filter(activo=True)
-    
-    context = {
-        'destacados': productos_destacados,
-        'nuevos': productos_nuevos,
-        'mas_vendidos': productos_mas_vendidos,
-        'categorias': categorias,
-        'carrusel_imagenes': carrusel_imagenes,  # Agregar al contexto
-    }
-    return render(request, 'catalogo/index.html', context)
-
-def index(request):
-    productos_destacados = Producto.objects.filter(destacado=True, disponible=True)[:8]
-    productos_nuevos = Producto.objects.filter(disponible=True).order_by('-fecha_creacion')[:8]
-    productos_mas_vendidos = Producto.objects.filter(disponible=True).order_by('-vendidos')[:8]
-    categorias = Categoria.objects.all()[:6]
-    
-    # Obtener imágenes activas del carrusel
     carrusel_imagenes = CarruselImagen.objects.filter(activo=True).order_by('orden')
     
     context = {
@@ -739,7 +777,7 @@ def index(request):
         'categorias': categorias,
         'carrusel_imagenes': carrusel_imagenes,  # Importante para el carrusel
     }
-    return render(request, 'catalogo/index.html', context)
+    return render(request, 'index.html', context)
 
 @require_GET
 def obtener_contenido_caja(request, producto_id):

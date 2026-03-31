@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Verificar Correo - Mi Tienda{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">Verificación de Correo Requerida</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-envelope"></i>
+                        <strong>¡Hola {{ request.user.username }}!</strong><br>
+                        Para continuar usando nuestra plataforma, necesitas verificar tu correo electrónico:
+                        <strong>{{ request.user.email }}</strong>
+                    </div>
+                    
+                    <p>¿No recibiste el correo de verificación?</p>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-envelope-paper"></i> Reenviar correo de verificación
+                        </button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <div class="text-muted small">
+                        <p>Consejos:</p>
+                        <ul>
+                            <li>Revisa tu bandeja de spam o correos no deseados</li>
+                            <li>Asegúrate de que el correo {{ request.user.email }} sea correcto</li>
+                            <li>Si el problema persiste, contacta al soporte</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

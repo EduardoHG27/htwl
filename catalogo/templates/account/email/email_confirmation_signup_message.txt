@@ -1,0 +1,14 @@
+{% load account %}{% user_display user as user_display %}{% load i18n %}{% autoescape off %}
+{% blocktrans with site_name=current_site.name site_domain=current_site.domain %}¡Bienvenido a {{ site_name }}!
+
+Para confirmar tu dirección de correo electrónico y activar tu cuenta, haz clic en el siguiente enlace:
+
+{{ activate_url }}
+
+Este enlace expirará en {{ key_expires }} días.
+
+Si no solicitaste este registro, ignora este mensaje.
+
+Gracias por confiar en {{ site_name }}.
+{% endblocktrans %}
+{% endautoescape %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load account socialaccount %}
+
+{% block title %}{% trans "Iniciar sesión" %}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">{% trans "Iniciar sesión" %}</h4>
+                </div>
+                <div class="card-body">
+                    {% get_providers as socialaccount_providers %}
+                    
+                    {% if socialaccount_providers %}
+                        <div class="d-grid gap-2 mb-3">
+                            <a href="{% provider_login_url 'google' %}" class="btn btn-danger">
+                                <i class="fab fa-google"></i> {% trans "Iniciar sesión con Google" %}
+                            </a>
+                        </div>
+                        <div class="text-center mb-3">
+                            <span class="text-muted">{% trans "o" %}</span>
+                        </div>
+                    {% endif %}
+                    
+                    <form class="login" method="POST" action="{% url 'account_login' %}">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_login" class="form-label">{% trans "Email" %}</label>
+                            <input type="email" name="login" class="form-control" id="id_login" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_password" class="form-label">{% trans "Contraseña" %}</label>
+                            <input type="password" name="password" class="form-control" id="id_password" required>
+                        </div>
+                        
+                        {% if redirect_field_value %}
+                            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+                        {% endif %}
+                        
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" type="submit">{% trans "Iniciar sesión" %}</button>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <a href="{% url 'account_reset_password' %}" class="text-muted">
+                                {% trans "¿Olvidaste tu contraseña?" %}
+                            </a>
+                            <br>
+                            <a href="{% url 'account_signup' %}" class="text-muted">
+                                {% trans "¿No tienes cuenta? Regístrate" %}
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

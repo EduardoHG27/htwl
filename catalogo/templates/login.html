@@ -1,5 +1,6 @@
-{% extends 'catalogo/base.html' %}
+{% extends 'base.html' %}
 {% load static %}
+{% load socialaccount %}  {# ← Agrega esta línea al principio #}
 
 {% block title %}Iniciar Sesión - Mi Tienda{% endblock %}
 
@@ -34,6 +35,21 @@
                             <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
                         </button>
                     </form>
+                    
+                    {# === BOTÓN DE GOOGLE - AGREGAR AQUÍ === #}
+                    <div class="separador my-3">
+                        <hr>
+                        <span class="px-2 text-muted">O continúa con</span>
+                        <hr>
+                    </div>
+                    
+                    <a href="{% provider_login_url 'google' %}" class="btn btn-google w-100">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+                             alt="Google" width="20" height="20" style="margin-right: 10px;">
+                        Iniciar sesión con Google
+                    </a>
+                    {# === FIN BOTÓN DE GOOGLE === #}
+                    
                 </div>
                 <div class="card-footer text-center">
                     <p class="mb-0">
@@ -48,4 +64,37 @@
         </div>
     </div>
 </div>
+
+{# === ESTILOS PARA EL BOTÓN DE GOOGLE === #}
+<style>
+.separador {
+    display: flex;
+    align-items: center;
+    text-align: center;
+}
+.separador hr {
+    flex: 1;
+    margin: 0;
+}
+.separador span {
+    font-size: 14px;
+}
+.btn-google {
+    background-color: #fff;
+    color: #757575;
+    border: 1px solid #ddd;
+    padding: 10px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+.btn-google:hover {
+    background-color: #f5f5f5;
+    color: #333;
+    border-color: #ccc;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+</style>
 {% endblock %}
