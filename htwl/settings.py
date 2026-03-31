@@ -3,6 +3,9 @@ import dj_database_url
 from pathlib import Path
 import logging
 import json
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -236,10 +239,6 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Archivos multimedia
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # 5. LOGS Y MONITOREO
@@ -268,6 +267,27 @@ LOGGING = {
         },
     },
 }
+
+if not DEBUG:
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+        'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+        'SECURE': True,
+    }
+    
+    # Usar Cloudinary para archivos media
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    
+    # URL de Cloudinary para archivos media
+    MEDIA_URL = f'https://res.cloudinary.com/{os.environ.get("CLOUDINARY_CLOUD_NAME")}/image/upload/'
+    
+    # MEDIA_ROOT NO se usa con Cloudinary, pero lo dejamos por compatibilidad
+    MEDIA_ROOT = BASE_DIR / 'media'  # Esto no se usará realmente
+else:
+    # Desarrollo local
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
 
 # 6. SEGURIDAD ADICIONAL
 SECURE_BROWSER_XSS_FILTER = True
