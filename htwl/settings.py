@@ -14,7 +14,6 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '.railway.app',  # Permite todos los subdominios de railway.app
     os.environ.get('RAILWAY_PUBLIC_DOMAIN', ''),  # Dominio dinámico de Railway
-    '*',  # Temporal para pruebas (quitar en producción real)
 ]
 
 # 🔐 CSRF TRUSTED ORIGINS - NECESARIO PARA ADMIN EN PRODUCCIÓN
@@ -31,6 +30,23 @@ if os.environ.get('RAILWAY_PUBLIC_DOMAIN'):
         CSRF_TRUSTED_ORIGINS.append(f'https://{domain}')
     if f'http://{domain}' not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(f'http://{domain}')
+
+IS_PRODUCTION = 'DATABASE_URL' in os.environ
+
+if IS_PRODUCTION:
+    # Configuración para producción (Railway)
+    SECURE_SSL_REDIRECT = False
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+else:
+    # Configuración para desarrollo local
+    SECURE_SSL_REDIRECT = False
+    SECURE_PROXY_SSL_HEADER = None
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
 
 # Application definition
 INSTALLED_APPS = [
@@ -57,7 +73,7 @@ AUTHENTICATION_BACKENDS = [
 SITE_ID = 1
 
 # Configuración de allauth
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # Cambiado a mandatory
+ACCOUNT_EMAIL_VERIFICATION = 'optional'  # Cambiado a mandatory
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False  # Opcional: permitir login con email
 ACCOUNT_AUTHENTICATION_METHOD = 'email'  # Usar email como método principal
@@ -65,8 +81,8 @@ ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_LOGIN_METHODS = {'email'}  # Solo email para login
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*'] 
 
-SOCIALACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # Forzar verificación de email
-SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'optional'  # Forzar verificación de email
+SOCIALACCOUNT_EMAIL_REQUIRED = False
 
 # Para verificación de correo
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
@@ -74,8 +90,8 @@ ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = '/'
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = '/'
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
 
-SOCIALACCOUNT_AUTO_SIGNUP = False  # No auto-crear cuenta sin verificar
-SOCIALACCOUNT_LOGIN_ON_GET = False 
+SOCIALACCOUNT_AUTO_SIGNUP = True  # No auto-crear cuenta sin verificar
+SOCIALACCOUNT_LOGIN_ON_GET = True 
 SOCIALACCOUNT_ADAPTER = 'catalogo.adapters.CustomSocialAccountAdapter'
 
 
@@ -91,7 +107,6 @@ SOCIALACCOUNT_PROVIDERS = {
         },
         'OAUTH_PKCE_ENABLED': True,
         'VERIFIED_EMAIL': True,  # Google ya verifica emails, pero forzamos validación
-        'EMAIL_VERIFICATION': 'mandatory',  # Forzar verificación
     }
 }
 
@@ -183,6 +198,43 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
+# 5. LOGS Y MONITOREO
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'security.log',
+        },
+    },
+    'loggers': {
+        'django.security': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+        },
+        'allauth': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+        },
+    },
+}
+
+# 6. SEGURIDAD ADICIONAL
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+if not DEBUG:  # Solo en producción
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+else:
+    SECURE_HSTS_SECONDS = 0
+
+##SECURE_SSL_REDIRECT = True
+##SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+##ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
