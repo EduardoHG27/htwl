@@ -97,15 +97,18 @@
                                 </div>
 
                                 <!-- Datos bancarios para transferencia -->
-                                <div class="alert alert-secondary mt-3" id="datos-bancarios">
-                                    <i class="bi bi-bank"></i>
-                                    <strong>Datos para transferencia:</strong><br>
-                                    Banco: Banco Ejemplo<br>
-                                    Cuenta: 1234-5678-9012-3456<br>
-                                    CLABE: 012345678901234567<br>
-                                    Titular: Mi Tienda S.A. de C.V.<br>
-                                    <small class="text-muted">Una vez realizada la transferencia, envía tu comprobante a ventas@mitienda.com</small>
-                                </div>
+                                    <div class="alert alert-secondary mt-3" id="datos-bancarios">
+                                        {% if datos_bancarios %}
+                                            <strong>🏦 Banco:</strong> {{ datos_bancarios.banco }}<br>
+                                            <strong>👤 Titular:</strong> {{ datos_bancarios.titular }}<br>
+                                            <strong>💳 Cuenta:</strong> {{ datos_bancarios.cuenta }}<br>
+                                            <strong>🔢 CLABE:</strong> {{ datos_bancarios.clabe }}<br>
+                                        {% else %}
+                                            <div class="alert alert-danger">
+                                                Método de pago no disponible. Contacta al administrador.
+                                            </div>
+                                        {% endif %}
+                                    </div>
                             </div>
                         </div>
 

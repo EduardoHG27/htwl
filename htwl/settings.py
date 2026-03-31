@@ -1,6 +1,8 @@
 import os
 import dj_database_url
 from pathlib import Path
+import logging
+import json
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -180,6 +182,48 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+
+# DATOS BANCARIOS PARA TRANSFERENCIAS - Usando JSON desde variable de entorno
+DATOS_BANCARIOS_JSON = os.environ.get('DATOS_BANCARIOS_JSON', '')
+
+if DATOS_BANCARIOS_JSON:
+    try:
+        DATOS_BANCARIOS = json.loads(DATOS_BANCARIOS_JSON)
+        # Validar que tenga los campos mínimos requeridos
+        required_fields = ['banco', 'titular', 'cuenta', 'clabe', 'instrucciones']
+        missing_fields = [field for field in required_fields if not DATOS_BANCARIOS.get(field)]
+        if missing_fields and IS_PRODUCTION:
+            import warnings
+            warnings.warn(f"DATOS_BANCARIOS faltan campos: {missing_fields}")
+    except json.JSONDecodeError as e:
+        # Si hay error en el JSON, usar valores por defecto
+        DATOS_BANCARIOS = {
+            'banco': 'Error en configuración',
+            'titular': 'Contactar al administrador',
+            'cuenta': 'No disponible',
+            'clabe': 'No disponible',
+            'tarjeta': '',
+            'instrucciones': 'Error en configuración de pago. Por favor contacta al administrador.',
+            'email_contacto': 'admin@tutienda.com',
+            'telefono_contacto': '55 1234 5678',
+        }
+        if IS_PRODUCTION:
+            # En producción, loguear el error
+            import logging
+            logging.error(f"Error parsing DATOS_BANCARIOS_JSON: {e}")
+else:
+    # Configuración por defecto para desarrollo local
+    DATOS_BANCARIOS = {
+        'banco': 'BBVA México',
+        'titular': 'Hot Wheels Store S.A. de C.V.',
+        'cuenta': '1234 5678 9012 3456',
+        'clabe': '012345678901234567',
+        'tarjeta': '1234 5678 9012 3456',
+        'instrucciones': 'Realiza la transferencia y sube el comprobante en formato PDF o imagen',
+        'email_contacto': 'ventas@hotwheelstore.com',
+        'telefono_contacto': '55 1234 5678',
+    }
+
 # Idioma y zona horaria
 LANGUAGE_CODE = 'es-mx'
 TIME_ZONE = 'America/Mexico_City'
@@ -208,17 +252,19 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.FileHandler',
-            'filename': 'security.log',
+            'filename': 'csrf_debug.log',
         },
     },
     'loggers': {
-        'django.security': {
+        'django.security.csrf': {
             'handlers': ['console', 'file'],
-            'level': 'WARNING',
+            'level': 'DEBUG',  # Cambiar a DEBUG temporalmente
+            'propagate': False,
         },
-        'allauth': {
+        'django.request': {
             'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
 }
